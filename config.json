@@ -1,0 +1,8 @@
+{
+    "gpio":"/sys/class/gpio_sw/PA0/data",
+    "protocoles":
+    [
+        {"name":"generic", "bit": 20, "trigger": [5600, 5700], "zero": [80, 220], "one": [470, 600]},
+        {"name":"homewizzard", "bit": 60, "trigger": [10700, 10850], "zero": [150, 350], "one": [1100, 1350]}
+    ]
+}
