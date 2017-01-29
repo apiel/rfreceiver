@@ -39,23 +39,84 @@ unsigned long getCurrentMicroTime(void)
 unsigned long lastPulseMicro = getCurrentMicroTime();
 string lastPulseValue = "0";
 
-unsigned long pulseIn(string gpio)
+// unsigned long pulseIn(string gpio) // 2
+// {
+//     unsigned long currentMicrosTime;
+//     unsigned long micros;
+//     string gpioValue;
+
+//     do {
+//         currentMicrosTime = getCurrentMicroTime();
+//         micros = currentMicrosTime - lastPulseMicro;
+//         gpioValue = digitalRead(gpio);
+//     } while (gpioValue == lastPulseValue && micros < 1000000);
+
+//     lastPulseMicro = currentMicrosTime;
+//     lastPulseValue = gpioValue;
+
+//     // cout << micros << endl;
+//     return micros;
+// }
+
+// unsigned long pulseIn(string gpio) // 3
+// {
+//     long micros;
+//     unsigned long now;
+//     unsigned long start = getCurrentMicroTime();
+//     do {
+//         now = getCurrentMicroTime();
+//         micros = now - start;
+//     } while (digitalRead(gpio) != "0" && micros < 1000000);
+
+//     do {
+//         now = getCurrentMicroTime();
+//         micros = now - start;
+//     } while (digitalRead(gpio) == "0" && micros < 1000000);
+
+// cout << micros << endl;
+
+//     return micros;
+// }
+
+// unsigned long pulseIn(string gpio) // 3
+// {
+//     long micros;
+//     unsigned long now;
+//     unsigned long start = getCurrentMicroTime();
+//     string value = digitalRead(gpio);
+//     do {
+//         now = getCurrentMicroTime();
+//         micros = now - start;
+//     } while (digitalRead(gpio) != value && micros < 1000000);
+
+// cout << micros << endl;
+
+//     return micros;
+// }
+
+unsigned long pulseIn(string gpio) // 1
 {
-    unsigned long currentMicrosTime;
-    unsigned long micros;
-    string gpioValue;
-
-    do {
-        currentMicrosTime = getCurrentMicroTime();
-        micros = currentMicrosTime - lastPulseMicro;
-        gpioValue = digitalRead(gpio);
-    } while (gpioValue == lastPulseValue && micros < 1000000);
-
-    lastPulseMicro = currentMicrosTime;
-    lastPulseValue = gpioValue;
-
-    // cout << micros << endl;
-    return micros;
+   struct timeval tn, t0, t1;
+   long micros = 0;
+   gettimeofday(&t0, NULL);
+   while (digitalRead(gpio) != "0")
+   {
+      gettimeofday(&tn, NULL);
+      if (tn.tv_sec > t0.tv_sec) micros = 1000000L; else micros = 0;
+      micros += (tn.tv_usec - t0.tv_usec);
+      if (micros > 1000000) return 0;
+   }
+   gettimeofday(&t1, NULL);
+   while (digitalRead(gpio) == "0")
+   {
+      gettimeofday(&tn, NULL);
+      if (tn.tv_sec > t0.tv_sec) micros = 1000000L; else micros = 0;
+      micros += (tn.tv_usec - t0.tv_usec);
+      if (micros > 1000000) return 0;
+   }
+   if (tn.tv_sec > t1.tv_sec) micros = 1000000L; else micros = 0;
+   micros += (tn.tv_usec - t1.tv_usec);
+   return micros;
 }
 
 string getCode(string gpio, int zeroMin, int zeroMax, int oneMin, int oneMax, int bit) {
