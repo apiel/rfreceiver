@@ -4,15 +4,9 @@
 #include <sys/time.h>
 #include <jsoncpp/json/json.h> // or jsoncpp/json.h , or json/json.h etc.
 
-using namespace std;
+#include <unistd.h> // usleep
 
-void schedulerRealtime() {
-	struct sched_param p;
-	p.__sched_priority = sched_get_priority_max(SCHED_RR);
-	if( sched_setscheduler( 0, SCHED_RR, &p ) == -1 ) {
-	    perror("Failed to switch to realtime scheduler.");
-	}
-}
+using namespace std;
 
 string digitalRead(string gpio) {
   string line;
@@ -26,75 +20,7 @@ string digitalRead(string gpio) {
   return line;
 }
 
-unsigned long getCurrentMicroTime(void)
-{
-    struct timeval t;
-    unsigned long micros;
-    gettimeofday(&t, NULL);
-    micros = t.tv_sec * 1000000L + t.tv_usec;
-    
-    return micros;
-}
-
-unsigned long lastPulseMicro = getCurrentMicroTime();
-string lastPulseValue = "0";
-
-// unsigned long pulseIn(string gpio) // 2
-// {
-//     unsigned long currentMicrosTime;
-//     unsigned long micros;
-//     string gpioValue;
-
-//     do {
-//         currentMicrosTime = getCurrentMicroTime();
-//         micros = currentMicrosTime - lastPulseMicro;
-//         gpioValue = digitalRead(gpio);
-//     } while (gpioValue == lastPulseValue && micros < 1000000);
-
-//     lastPulseMicro = currentMicrosTime;
-//     lastPulseValue = gpioValue;
-
-//     // cout << micros << endl;
-//     return micros;
-// }
-
-// unsigned long pulseIn(string gpio) // 3
-// {
-//     long micros;
-//     unsigned long now;
-//     unsigned long start = getCurrentMicroTime();
-//     do {
-//         now = getCurrentMicroTime();
-//         micros = now - start;
-//     } while (digitalRead(gpio) != "0" && micros < 1000000);
-
-//     do {
-//         now = getCurrentMicroTime();
-//         micros = now - start;
-//     } while (digitalRead(gpio) == "0" && micros < 1000000);
-
-// cout << micros << endl;
-
-//     return micros;
-// }
-
-// unsigned long pulseIn(string gpio) // 3
-// {
-//     long micros;
-//     unsigned long now;
-//     unsigned long start = getCurrentMicroTime();
-//     string value = digitalRead(gpio);
-//     do {
-//         now = getCurrentMicroTime();
-//         micros = now - start;
-//     } while (digitalRead(gpio) != value && micros < 1000000);
-
-// cout << micros << endl;
-
-//     return micros;
-// }
-
-unsigned long pulseIn(string gpio) // 1
+unsigned long pulseIn(string gpio)
 {
    struct timeval tn, t0, t1;
    long micros = 0;
@@ -116,6 +42,7 @@ unsigned long pulseIn(string gpio) // 1
    }
    if (tn.tv_sec > t1.tv_sec) micros = 1000000L; else micros = 0;
    micros += (tn.tv_usec - t1.tv_usec);
+
    return micros;
 }
 
@@ -151,8 +78,6 @@ bool latch(string gpio, int latchMin, int latchMax) {
 }
 
 int main() {
-    schedulerRealtime();
-
     ifstream ifs("config.json");
     Json::Reader reader;
     Json::Value obj;
@@ -181,6 +106,7 @@ int main() {
                 }
             }
         }
+        usleep(100); // save CPU
     }
 }
 
