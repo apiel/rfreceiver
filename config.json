@@ -2,6 +2,6 @@
     "gpio":"/sys/class/gpio_sw/PA0/data",
     "protocoles":
     [
-        {"name":"homewizard", "bit": 54, "trigger": [10800, 10900], "latch": [2400, 2600], "zero": [200, 350], "one": [1100, 1350]}
+        {"name":"homewizard", "bit": 64, "trigger": [10800, 10900], "latch": [2400, 2600], "zero": [200, 350], "one": [1100, 1350]}
     ]
 }
