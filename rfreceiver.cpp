@@ -26,30 +26,67 @@ string digitalRead(string gpio) {
   return line;
 }
 
-int pulseIn(string gpio, int timeout)
+unsigned long getCurrentMicroTime(void)
 {
-   struct timeval tn, t0, t1;
-   long micros;
-   gettimeofday(&t0, NULL);
-   micros = 0;
-   while (digitalRead(gpio) != "0")
-   {
-      gettimeofday(&tn, NULL);
-      if (tn.tv_sec > t0.tv_sec) micros = 1000000L; else micros = 0;
-      micros += (tn.tv_usec - t0.tv_usec);
-      if (micros > timeout) return 0;
-   }
-   gettimeofday(&t1, NULL);
-   while (digitalRead(gpio) == "0")
-   {
-      gettimeofday(&tn, NULL);
-      if (tn.tv_sec > t0.tv_sec) micros = 1000000L; else micros = 0;
-      micros = micros + (tn.tv_usec - t0.tv_usec);
-      if (micros > timeout) return 0;
-   }
-   if (tn.tv_sec > t1.tv_sec) micros = 1000000L; else micros = 0;
-   micros = micros + (tn.tv_usec - t1.tv_usec);
-   return micros;
+    struct timeval t;
+    unsigned long micros;
+    gettimeofday(&t, NULL);
+    micros = t.tv_sec * 1000000L + t.tv_usec;
+    
+    return micros;
+}
+
+unsigned long lastPulseMicro = getCurrentMicroTime();
+string lastPulseValue = "0";
+
+unsigned long pulseIn(string gpio)
+{
+    unsigned long currentMicrosTime;
+    unsigned long micros;
+    string gpioValue;
+
+    do {
+        currentMicrosTime = getCurrentMicroTime();
+        micros = currentMicrosTime - lastPulseMicro;
+        gpioValue = digitalRead(gpio);
+    } while (gpioValue == lastPulseValue && micros < 1000000);
+
+    lastPulseMicro = currentMicrosTime;
+    lastPulseValue = gpioValue;
+
+    // cout << micros << endl;
+    return micros;
+}
+
+string getCode(string gpio, int zeroMin, int zeroMax, int oneMin, int oneMax, int bit) {
+    unsigned long t;
+    string code = ""; 
+    while(bit > 0){ // we could also do while code.length() < bit
+        t = pulseIn(gpio);
+        if(t > oneMin && t < oneMax) {
+            code += "1";
+            bit--;
+        }
+        else if(t > zeroMin && t < zeroMax) {
+            code += "0";
+            bit--;
+        }
+    }
+    return code;
+}
+
+bool latch(string gpio, int latchMin, int latchMax) {
+    if (latchMin > 0 && latchMax > 0) {
+        unsigned long t;
+        for (int retry = 0; retry < 10; retry++) { // max retry 10
+            t = pulseIn(gpio);
+            if (t > latchMin && t < latchMax) {
+                return true;
+            }
+        }
+        return false;
+    }
+    return true;
 }
 
 int main() {
@@ -63,46 +100,24 @@ int main() {
     string gpio = obj["gpio"].asString();
     const Json::Value& protocoles = obj["protocoles"]; // array of characters
 
-
-    cout << "Gpio: " << gpio << endl;
-    for (int i = 0; i < protocoles.size(); i++){
-        cout << "name: " << protocoles[i]["name"].asString() << endl;
-        cout << "bit: " << protocoles[i]["bit"].asUInt() << endl;
-        cout << "trigger between " << protocoles[i]["trigger"][0].asUInt()
-             << " and "  << protocoles[i]["trigger"][1].asUInt() << endl;
-        cout << "zero between " << protocoles[i]["zero"][0].asUInt()
-             << " and "  << protocoles[i]["zero"][1].asUInt() << endl;
-        cout << "one between " << protocoles[i]["one"][0].asUInt()
-             << " and "  << protocoles[i]["one"][1].asUInt() << endl;
-        cout << endl;
-    }
-
-
     unsigned long t = 0;
 	for(;;) {
-        t = pulseIn(gpio, 1000000);
-        for (int i = 0; i < protocoles.size(); i++){
+        t = pulseIn(gpio);
+        for (int i = 0; i < protocoles.size(); i++) {
             if (t > protocoles[i]["trigger"][0].asUInt() 
              && t < protocoles[i]["trigger"][1].asUInt()) {
-                string code = ""; 
-                int zeroMin = protocoles[i]["zero"][0].asUInt();
-                int zeroMax = protocoles[i]["zero"][1].asUInt();
-                int oneMin = protocoles[i]["one"][0].asUInt();
-                int oneMax = protocoles[i]["one"][1].asUInt();
-                int bit = protocoles[i]["bit"].asUInt();
+                int latchMin = protocoles[i]["latch"][0].asUInt();
+                int latchMax = protocoles[i]["latch"][1].asUInt();
+                if (latch(gpio, latchMin, latchMax)) {
+                    int zeroMin = protocoles[i]["zero"][0].asUInt();
+                    int zeroMax = protocoles[i]["zero"][1].asUInt();
+                    int oneMin = protocoles[i]["one"][0].asUInt();
+                    int oneMax = protocoles[i]["one"][1].asUInt();
+                    int bit = protocoles[i]["bit"].asUInt();
 
-                while(bit > 0){ // we could also do while code.length() < bit
-                    t = pulseIn(gpio, 1000000);
-                    if(t > oneMin && t < oneMax) {
-                        code += "1";
-                        bit--;
-				    }
-                    else if(t > zeroMin && t < zeroMax) {
-                        code += "0";
-                        bit--;
-				    }
+                    string code = getCode(gpio, zeroMin, zeroMax, oneMin, oneMax, bit);
+                    cout << protocoles[i]["name"].asString() << " " << code << endl;
                 }
-                cout << protocoles[i]["name"].asString() << " " << code << endl;
             }
         }
     }

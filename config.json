@@ -2,7 +2,7 @@
     "gpio":"/sys/class/gpio_sw/PA0/data",
     "protocoles":
     [
-        {"name":"generic", "bit": 20, "trigger": [5600, 5700], "zero": [80, 220], "one": [470, 600]},
-        {"name":"homewizzard", "bit": 60, "trigger": [10700, 10850], "zero": [150, 350], "one": [1100, 1350]}
+        {"name":"generic", "bit": 24, "trigger": [5650, 5750], "latch": [0, 0], "zero": [100, 300], "one": [470, 620]},
+        {"name":"homewizard", "bit": 52, "trigger": [10800, 10900], "latch": [2400, 2600], "zero": [200, 350], "one": [1200, 1350]}
     ]
 }
